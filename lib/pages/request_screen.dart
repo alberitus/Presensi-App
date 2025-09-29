@@ -8,7 +8,7 @@ import '../model/request.dart';
 
 class RequestScreen extends StatefulWidget {
   final User user;
-  final Function(int)? onNavigate; // Callback untuk navigasi
+  final Function(int)? onNavigate;
 
   const RequestScreen({
     super.key, 
@@ -142,7 +142,7 @@ class _RequestScreenState extends State<RequestScreen> {
         ),
       ),
       bottomNavigationBar: BottomNavigationBar(
-        currentIndex: 1, // Index untuk Request screen
+        currentIndex: 1,
         onTap: (index) {
           if (widget.onNavigate != null) {
             widget.onNavigate!(index);
@@ -414,7 +414,6 @@ class _CreateRequestFormState extends State<CreateRequestForm> {
                 ),
                 const SizedBox(height: 24),
 
-                // Status Dropdown
                 DropdownButtonFormField<String>(
                   value: selectedStatus,
                   decoration: const InputDecoration(
@@ -432,7 +431,6 @@ class _CreateRequestFormState extends State<CreateRequestForm> {
                 ),
                 const SizedBox(height: 16),
 
-                // Tanggal Mulai
                 InkWell(
                   onTap: () => _selectDate(true),
                   child: InputDecorator(
@@ -450,7 +448,6 @@ class _CreateRequestFormState extends State<CreateRequestForm> {
                 ),
                 const SizedBox(height: 16),
 
-                // Tanggal Selesai (Optional)
                 InkWell(
                   onTap: () => _selectDate(false),
                   child: InputDecorator(
@@ -468,7 +465,6 @@ class _CreateRequestFormState extends State<CreateRequestForm> {
                 ),
                 const SizedBox(height: 16),
 
-                // Keterangan
                 TextFormField(
                   controller: keteranganController,
                   maxLines: 3,
@@ -485,7 +481,6 @@ class _CreateRequestFormState extends State<CreateRequestForm> {
                 ),
                 const SizedBox(height: 16),
 
-                // Upload File
                 InkWell(
                   onTap: _pickImage,
                   child: Container(
@@ -511,7 +506,6 @@ class _CreateRequestFormState extends State<CreateRequestForm> {
                 ),
                 const SizedBox(height: 24),
 
-                // Submit Button
                 SizedBox(
                   width: double.infinity,
                   height: 48,
