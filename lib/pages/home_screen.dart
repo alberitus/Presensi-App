@@ -6,6 +6,7 @@ import '../model/user.dart';
 import '../model/absensi.dart';
 import 'profile_screen.dart';
 import 'request_screen.dart';
+import 'attendance_detail_page.dart';
 
 class AbsensiHomeScreen extends StatefulWidget {
   final User user;
@@ -24,7 +25,7 @@ class _AbsensiHomeScreenState extends State<AbsensiHomeScreen>
   bool hasCheckedIn = false;
   bool hasCheckedOut = false;
   int _selectedIndex = 0;
-  
+
   Absensi? todayAbsensi;
   late AnimationController _btnController;
   late AnimationController _pageController;
@@ -33,8 +34,7 @@ class _AbsensiHomeScreenState extends State<AbsensiHomeScreen>
   @override
   void initState() {
     super.initState();
-    
-    // Button animation controller
+
     _btnController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 500),
@@ -42,12 +42,11 @@ class _AbsensiHomeScreenState extends State<AbsensiHomeScreen>
       upperBound: 1.0,
     )..forward();
 
-    // Page transition animation controller
     _pageController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 300),
     );
-    
+
     _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: _pageController, curve: Curves.easeInOut),
     );
@@ -74,12 +73,12 @@ class _AbsensiHomeScreenState extends State<AbsensiHomeScreen>
   Future<void> _loadAbsensiData() async {
     try {
       final response = await api.get('/absensi?user_id=${widget.user.id}');
-      
+
       setState(() {
         absensiList = (response['data'] as List? ?? [])
             .map((item) => Absensi.fromJson(item))
             .toList();
-        
+
         final today = DateTime.now();
         todayAbsensi = absensiList
             .where(
@@ -89,10 +88,10 @@ class _AbsensiHomeScreenState extends State<AbsensiHomeScreen>
                   absensi.tanggal.day == today.day,
             )
             .firstOrNull;
-        
+
         hasCheckedIn = todayAbsensi?.jamMasuk != null;
         hasCheckedOut = todayAbsensi?.jamKeluar != null;
-        
+
         isLoading = false;
       });
     } catch (e) {
@@ -101,24 +100,24 @@ class _AbsensiHomeScreenState extends State<AbsensiHomeScreen>
   }
 
   Future<void> _checkIn() async {
-    final messenger = ScaffoldMessenger.of(context);
-    
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => const Center(
-        child: CircularProgressIndicator(),
-      ),
+      builder: (_) => const Center(child: CircularProgressIndicator()),
     );
+
+    final messenger = ScaffoldMessenger.of(context);
 
     try {
       final position = await LocationService.getCurrentLocation();
-      
+
+      if (!mounted) return;
+
       if (position == null) {
         Navigator.pop(context);
         messenger.showSnackBar(
           const SnackBar(
-            content: Text('❌ Gagal mendapatkan lokasi GPS'),
+            content: Text('Gagal mendapatkan lokasi GPS'),
             backgroundColor: Colors.red,
           ),
         );
@@ -135,26 +134,28 @@ class _AbsensiHomeScreenState extends State<AbsensiHomeScreen>
         'is_fake_gps': isFakeGps,
       });
 
+      if (!mounted) return;
+
       Navigator.pop(context);
-      
+
       if (response['status'] == true && response['data'] != null) {
         setState(() {
           todayAbsensi = Absensi.fromJson(response['data']);
           hasCheckedIn = true;
           hasCheckedOut = false;
         });
-        
-        // Restart button animation
-        _btnController.reset();
-        _btnController.forward();
+
+        _btnController
+          ..reset()
+          ..forward();
       }
-      
+
       messenger.showSnackBar(
         SnackBar(
           content: Text(
-            isFakeGps 
-              ? '⚠️ Check in berhasil (Fake GPS terdeteksi!)'
-              : '✅ Check in berhasil!'
+            isFakeGps
+                ? 'Check-in berhasil (Fake GPS terdeteksi!)'
+                : 'Check-in berhasil!',
           ),
           backgroundColor: isFakeGps ? Colors.orange : Colors.green,
         ),
@@ -162,35 +163,34 @@ class _AbsensiHomeScreenState extends State<AbsensiHomeScreen>
 
       await _loadAbsensiData();
     } catch (e) {
+      if (!mounted) return;
+
       Navigator.pop(context);
       messenger.showSnackBar(
-        SnackBar(
-          content: Text('❌ Error: $e'),
-          backgroundColor: Colors.red,
-        ),
+        SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
       );
     }
   }
 
   Future<void> _checkOut() async {
-    final messenger = ScaffoldMessenger.of(context);
-    
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => const Center(
-        child: CircularProgressIndicator(),
-      ),
+      builder: (_) => const Center(child: CircularProgressIndicator()),
     );
+
+    final messenger = ScaffoldMessenger.of(context);
 
     try {
       final position = await LocationService.getCurrentLocation();
-      
+
+      if (!mounted) return;
+
       if (position == null) {
         Navigator.pop(context);
         messenger.showSnackBar(
           const SnackBar(
-            content: Text('❌ Gagal mendapatkan lokasi GPS'),
+            content: Text('Gagal mendapatkan lokasi GPS'),
             backgroundColor: Colors.red,
           ),
         );
@@ -198,40 +198,49 @@ class _AbsensiHomeScreenState extends State<AbsensiHomeScreen>
       }
 
       final locationString = '${position.latitude},${position.longitude}';
+      final isFakeGps = await LocationService.isFakeGPS();
 
       final response = await api.post('/absensi/keluar', {
         'user_id': widget.user.id,
         'lokasi_keluar': locationString,
+        'status': 'hadir',
+        'is_fake_gps': isFakeGps,
       });
 
+      if (!mounted) return;
+
       Navigator.pop(context);
-      
+
       if (response['status'] == true && response['data'] != null) {
         setState(() {
           todayAbsensi = Absensi.fromJson(response['data']);
-          hasCheckedOut = true;
+          hasCheckedIn = true;
+          hasCheckedOut = false;
         });
-        
-        // Restart button animation
-        _btnController.reset();
-        _btnController.forward();
+
+        _btnController
+          ..reset()
+          ..forward();
       }
-      
+
       messenger.showSnackBar(
-        const SnackBar(
-          content: Text('✅ Check out berhasil!'),
-          backgroundColor: Colors.green,
+        SnackBar(
+          content: Text(
+            isFakeGps
+                ? 'Check-out berhasil (Fake GPS terdeteksi!)'
+                : 'Check-out berhasil!',
+          ),
+          backgroundColor: isFakeGps ? Colors.orange : Colors.green,
         ),
       );
 
       await _loadAbsensiData();
     } catch (e) {
+      if (!mounted) return;
+
       Navigator.pop(context);
       messenger.showSnackBar(
-        SnackBar(
-          content: Text('❌ Error: $e'),
-          backgroundColor: Colors.red,
-        ),
+        SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
       );
     }
   }
@@ -240,10 +249,10 @@ class _AbsensiHomeScreenState extends State<AbsensiHomeScreen>
     if (todayAbsensi == null) {
       return '-- - --';
     }
-    
+
     final checkIn = todayAbsensi!.jamMasuk ?? '--:-';
     final checkOut = todayAbsensi!.jamKeluar ?? '--:--';
-    
+
     return '$checkIn - $checkOut';
   }
 
@@ -258,29 +267,72 @@ class _AbsensiHomeScreenState extends State<AbsensiHomeScreen>
     }
   }
 
+  void _showFullAttendance() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return DraggableScrollableSheet(
+          expand: false,
+          initialChildSize: 0.8,
+          minChildSize: 0.5,
+          maxChildSize: 1.0,
+          builder: (context, scrollController) {
+            return Container(
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+              ),
+              child: Column(
+                children: [
+                  const SizedBox(height: 8),
+                  Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.grey[300],
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'All Attendance',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 8),
+                  Expanded(
+                    child: ListView.builder(
+                      controller: scrollController,
+                      itemCount: absensiList.length,
+                      itemBuilder: (context, index) {
+                        final absensi = absensiList[index];
+                        return _buildAttendanceCard(absensi);
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    // Animated page transition wrapper
     Widget currentScreen;
-    
+
     if (_selectedIndex == 1) {
-      currentScreen = RequestScreen(
-        user: widget.user,
-        onNavigate: _onNavigate,
-      );
+      currentScreen = RequestScreen(user: widget.user, onNavigate: _onNavigate);
     } else if (_selectedIndex == 2) {
-      currentScreen = ProfileScreen(
-        user: widget.user,
-        onNavigate: _onNavigate,
-      );
+      currentScreen = ProfileScreen(user: widget.user, onNavigate: _onNavigate);
     } else {
       currentScreen = _buildHomeScreen();
     }
 
-    return FadeTransition(
-      opacity: _fadeAnimation,
-      child: currentScreen,
-    );
+    return FadeTransition(opacity: _fadeAnimation, child: currentScreen);
   }
 
   Widget _buildHomeScreen() {
@@ -297,10 +349,7 @@ class _AbsensiHomeScreenState extends State<AbsensiHomeScreen>
               builder: (context, value, child) {
                 return Transform.translate(
                   offset: Offset(0, value),
-                  child: Opacity(
-                    opacity: (value + 50) / 50,
-                    child: child,
-                  ),
+                  child: Opacity(opacity: (value + 50) / 50, child: child),
                 );
               },
               child: Padding(
@@ -349,10 +398,7 @@ class _AbsensiHomeScreenState extends State<AbsensiHomeScreen>
                       curve: Curves.elasticOut,
                       tween: Tween(begin: 0.8, end: 1.0),
                       builder: (context, scale, child) {
-                        return Transform.scale(
-                          scale: scale,
-                          child: child,
-                        );
+                        return Transform.scale(scale: scale, child: child);
                       },
                       child: Container(
                         width: double.infinity,
@@ -362,7 +408,7 @@ class _AbsensiHomeScreenState extends State<AbsensiHomeScreen>
                           borderRadius: BorderRadius.circular(16),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withOpacity(0.1),
+                              color: Colors.black.withValues(alpha: 0.1),
                               blurRadius: 10,
                               offset: const Offset(0, 5),
                             ),
@@ -382,7 +428,9 @@ class _AbsensiHomeScreenState extends State<AbsensiHomeScreen>
                                   ),
                                 ),
                                 Text(
-                                  DateFormat('EEE, dd MMM yyyy').format(DateTime.now()),
+                                  DateFormat(
+                                    'EEE, dd MMM yyyy',
+                                  ).format(DateTime.now()),
                                   style: const TextStyle(
                                     fontSize: 14,
                                     color: Colors.grey,
@@ -400,7 +448,7 @@ class _AbsensiHomeScreenState extends State<AbsensiHomeScreen>
                               ),
                             ),
                             const SizedBox(height: 16),
-                            
+
                             // Animated buttons
                             AnimatedSwitcher(
                               duration: const Duration(milliseconds: 400),
@@ -448,7 +496,7 @@ class _AbsensiHomeScreenState extends State<AbsensiHomeScreen>
                     padding: const EdgeInsets.all(24),
                     child: Column(
                       children: [
-                        // Menu with stagger animation
+                        // Menu
                         TweenAnimationBuilder<double>(
                           duration: const Duration(milliseconds: 600),
                           curve: Curves.easeOut,
@@ -499,7 +547,6 @@ class _AbsensiHomeScreenState extends State<AbsensiHomeScreen>
                             ),
                           ),
                         ),
-
                         const SizedBox(height: 24),
 
                         // Riwayat header
@@ -514,7 +561,7 @@ class _AbsensiHomeScreenState extends State<AbsensiHomeScreen>
                               ),
                             ),
                             TextButton(
-                              onPressed: () {},
+                              onPressed: _showFullAttendance, // 🔥
                               child: const Text(
                                 'View All',
                                 style: TextStyle(color: Color(0xFF1565C0)),
@@ -524,7 +571,7 @@ class _AbsensiHomeScreenState extends State<AbsensiHomeScreen>
                         ),
                         const SizedBox(height: 16),
 
-                        // List with stagger animation
+                        // List attendance (ringkas)
                         Expanded(
                           child: isLoading
                               ? const Center(child: CircularProgressIndicator())
@@ -594,15 +641,12 @@ class _AbsensiHomeScreenState extends State<AbsensiHomeScreen>
           onPressed: _checkIn,
           child: const Text(
             'Check In',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-            ),
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
           ),
         ),
       );
     }
-    
+
     if (hasCheckedIn && !hasCheckedOut) {
       return SizedBox(
         key: const ValueKey('check_out'),
@@ -620,15 +664,12 @@ class _AbsensiHomeScreenState extends State<AbsensiHomeScreen>
           onPressed: _checkOut,
           child: const Text(
             'Check Out',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-            ),
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
           ),
         ),
       );
     }
-    
+
     return Container(
       key: const ValueKey('completed'),
       width: double.infinity,
@@ -651,136 +692,90 @@ class _AbsensiHomeScreenState extends State<AbsensiHomeScreen>
   }
 
   Widget _buildMenuIcon(IconData icon, String label, Color color, int index) {
-    return TweenAnimationBuilder<double>(
-      duration: Duration(milliseconds: 700 + (index * 100)),
-      curve: Curves.elasticOut,
-      tween: Tween(begin: 0.0, end: 1.0),
-      builder: (context, value, child) {
-        return Transform.scale(
-          scale: value,
-          child: child,
-        );
+    return GestureDetector(
+      onTap: () {
+        if (index == 0) {
+          _showFullAttendance();
+        }
       },
-      child: InkWell(
-        onTap: () {},
-        borderRadius: BorderRadius.circular(12),
-        child: Column(
-          children: [
-            Container(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                color: color.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(icon, color: color, size: 24),
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.1),
+              shape: BoxShape.circle,
             ),
-            const SizedBox(height: 8),
-            Text(
-              label,
-              textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 12, color: Colors.black87),
+            child: Icon(icon, color: color, size: 24),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            label,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+              height: 1.2,
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildAttendanceCard(Absensi absensi) {
-    return Container(
+    return Card(
+      elevation: 3,
       margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.grey[50],
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: const [
-          BoxShadow(
-            color: Colors.black12,
-            blurRadius: 6,
-            offset: Offset(0, 3),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            DateFormat('EEE, dd MMM yyyy').format(absensi.tanggal),
-            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: Row(
-                  children: [
-                    AnimatedContainer(
-                      duration: const Duration(milliseconds: 300),
-                      width: 8,
-                      height: 8,
-                      decoration: BoxDecoration(
-                        color: absensi.jamMasuk != null ? Colors.green : Colors.grey,
-                        shape: BoxShape.circle,
-                      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            Icon(
+              absensi.jamKeluar == null
+                  ? Icons.access_time
+                  : Icons.check_circle,
+              color: absensi.jamKeluar == null ? Colors.orange : Colors.green,
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    DateFormat('dd MMM yyyy').format(absensi.tanggal),
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
                     ),
-                    const SizedBox(width: 8),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Start Day',
-                          style: TextStyle(color: Colors.grey, fontSize: 12),
-                        ),
-                        Text(
-                          absensi.jamMasuk ?? '--:--',
-                          style: const TextStyle(
-                            color: Color(0xFF1565C0),
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '${absensi.jamMasuk ?? '--:--'} - ${absensi.jamKeluar ?? '--:--'}',
+                    style: const TextStyle(fontSize: 13, color: Colors.grey),
+                  ),
+                ],
               ),
-              Expanded(
-                child: Row(
-                  children: [
-                    AnimatedContainer(
-                      duration: const Duration(milliseconds: 300),
-                      width: 8,
-                      height: 8,
-                      decoration: BoxDecoration(
-                        color: absensi.jamKeluar != null ? Colors.red : Colors.grey,
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'End Day',
-                          style: TextStyle(color: Colors.grey, fontSize: 12),
-                        ),
-                        Text(
-                          absensi.jamKeluar ?? '--:--',
-                          style: const TextStyle(
-                            color: Color(0xFF1565C0),
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
+            ),
+            // 🔹 Pindahkan tombol lokasi ke halaman detail
+            IconButton(
+              icon: const Icon(
+                Icons.arrow_forward_ios,
+                size: 16,
+                color: Colors.grey,
               ),
-            ],
-          ),
-        ],
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => AttendanceDetailPage(absensi: absensi),
+                  ),
+                );
+              },
+            ),
+          ],
+        ),
       ),
     );
   }

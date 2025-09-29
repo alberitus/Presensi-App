@@ -1,14 +1,15 @@
+import 'dart:async';
 import 'package:geolocator/geolocator.dart';
 
 class LocationService {
-  /// Memastikan lokasi dan permission sudah aktif
-  static Future<bool> ensureLocationEnabled() async {
-    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-    if (!serviceEnabled) {
-      return false;
-    }
+  static Position? _lastPosition;
+  static DateTime? _lastTimestamp;
 
-    LocationPermission permission = await Geolocator.checkPermission();
+  static Future<bool> ensureLocationEnabled() async {
+    final serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) return false;
+
+    var permission = await Geolocator.checkPermission();
     if (permission == LocationPermission.denied) {
       permission = await Geolocator.requestPermission();
       if (permission == LocationPermission.denied) {
@@ -17,56 +18,88 @@ class LocationService {
     }
 
     if (permission == LocationPermission.deniedForever) {
+      await Geolocator.openAppSettings();
       return false;
     }
 
     return true;
   }
 
-  /// Mendapatkan lokasi GPS saat ini
   static Future<Position?> getCurrentLocation() async {
     try {
-      // Cek permission dulu
       final hasPermission = await ensureLocationEnabled();
-      if (!hasPermission) {
-        return null;
-      }
+      if (!hasPermission) return null;
 
-      // Dapatkan posisi dengan akurasi tinggi
-      Position position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high,
-        timeLimit: const Duration(seconds: 10),
+      const settings = LocationSettings(
+        accuracy: LocationAccuracy.bestForNavigation,
+        distanceFilter: 0,
       );
 
+      final position = await Geolocator.getCurrentPosition(
+        locationSettings: settings,
+      ).timeout(const Duration(seconds: 10));
+
       return position;
+    } on TimeoutException {
+      print('Timeout saat mengambil lokasi');
+      return null;
     } catch (e) {
-      print('Error getting location: $e');
+      print('Error getCurrentLocation: $e');
       return null;
     }
   }
 
-  /// Mendapatkan lokasi dengan format string "lat,long"
   static Future<String?> getCurrentLocationString() async {
     final position = await getCurrentLocation();
     if (position == null) return null;
-    
     return '${position.latitude},${position.longitude}';
   }
 
-  /// Cek apakah GPS fake (mock location)
   static Future<bool> isFakeGPS() async {
     try {
       final position = await getCurrentLocation();
       if (position == null) return false;
 
-      // Di Android, isMocked mendeteksi mock location
-      return position.isMocked;
+      final now = DateTime.now();
+
+      if (position.isMocked) {
+        print('Lokasi di-mock oleh aplikasi pihak ketiga.');
+        return true;
+      }
+
+      if (_lastPosition != null && _lastTimestamp != null) {
+        final distance = Geolocator.distanceBetween(
+          _lastPosition!.latitude,
+          _lastPosition!.longitude,
+          position.latitude,
+          position.longitude,
+        );
+
+        final timeDiff = now.difference(_lastTimestamp!).inSeconds;
+        if (timeDiff > 0) {
+          final speedMps = distance / timeDiff;
+
+          if (speedMps > 50) {
+            print(
+                'Lompatan lokasi terdeteksi: ${distance.toStringAsFixed(1)} m dalam $timeDiff s (≈${speedMps.toStringAsFixed(1)} m/s)');
+            _lastPosition = position;
+            _lastTimestamp = now;
+            return true;
+          }
+        }
+      }
+
+      _lastPosition = position;
+      _lastTimestamp = now;
+
+      return false;
     } catch (e) {
+      print('Error deteksi fake GPS: $e');
       return false;
     }
   }
 
-  /// Hitung jarak antara 2 koordinat (dalam meter)
+  /// Hitung jarak antar dua titik (meter)
   static double calculateDistance({
     required double startLat,
     required double startLon,
@@ -76,7 +109,7 @@ class LocationService {
     return Geolocator.distanceBetween(startLat, startLon, endLat, endLon);
   }
 
-  /// Cek apakah user berada dalam radius tertentu dari kantor
+  /// Cek apakah user dalam radius kantor
   static Future<bool> isWithinOfficeRadius({
     required double officeLat,
     required double officeLon,
