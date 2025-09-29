@@ -1,21 +1,49 @@
-# presensi
+# 📲 Presensi App
 
-A new Flutter project.
+Presensi App adalah aplikasi absensi karyawan yang dibangun menggunakan **Flutter (Dart)** untuk frontend dan **Laravel** untuk backend.  
+Aplikasi ini mendukung login karyawan, pengajuan request, dan manajemen profil dengan tampilan modern dan smooth animation.
 
-## Getting Started
+🔗 **Backend:** [Presensi Backend – Laravel](https://github.com/alberitus/presensi-backend)
 
-This project is a starting point for a Flutter application.
+---
 
-A few resources to get you started if this is your first Flutter project:
+## 🚀 Fitur Utama
+- Login & Authentication karyawan
+- Halaman **Home** untuk ringkasan kehadiran
+- Halaman **Request** untuk pengajuan izin/lembur
+- Halaman **Profile** untuk data pribadi
+- UI modern & clean, terinspirasi dari [Human Capital Management Apps – Dribbble](https://dribbble.com/shots/23052271-Human-Capital-Management-Apps)
+- Terintegrasi dengan API Laravel
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+---
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+## 🖥️ Tampilan Aplikasi
 
+| Home Screen | Request Screen | Profile Screen | Login Screen |
+|-------------|----------------|----------------|--------------|
+| ![Home](assets/images/Home-screen.png) | ![Request](assets/images/Requests-screen.png) | ![Profile](assets/images/Profile-screen.png) | ![Login](assets/images/Login-screen.png) |
 
-reference in below :
+> *UI dapat berubah sesuai pengembangan.*
 
-https://dribbble.com/shots/23052271-Human-Capital-Management-Apps
+---
+
+## 🛠️ Teknologi yang Digunakan
+- **Frontend:** Flutter **3.35.4** (Stable) – Framework UI untuk membangun aplikasi cross-platform (Android/iOS/Web/Desktop).
+- **Bahasa Pemrograman:** **Dart 3.9.2** – Bahasa inti yang digunakan oleh Flutter.
+- **State Management:** `setState` (built-in) / `Provider` (opsional untuk pengelolaan state yang lebih kompleks).
+- **Backend:** **Laravel 10** – Framework PHP untuk RESTful API dan manajemen data di server.
+- **Database:** **MySQL** – Digunakan untuk penyimpanan data absensi dan user.
+- **API:** **RESTful API** – Komunikasi antara aplikasi Flutter dan backend Laravel.
+- **Version Control:** **Git & GitHub** – Untuk pengelolaan kode dan kolaborasi.
+- **Tools:** **DevTools 2.48.0** – Debugging & performance tools bawaan Flutter.
+
+---
+
+## ⚙️ Cara Menjalankan
+1. Clone repository ini:
+   ```bash
+   git clone https://github.com/alberitus/presensi-app.git
+   cd presensi-app
+   flutter pub get
+   flutter pub upgrade --major-versions
+   flutter run
