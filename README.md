@@ -31,7 +31,7 @@ Aplikasi ini mendukung login karyawan, pengajuan request, dan manajemen profil d
 - **Frontend:** Flutter **3.35.4** (Stable) – Framework UI untuk membangun aplikasi cross-platform (Android/iOS/Web/Desktop).
 - **Bahasa Pemrograman:** **Dart 3.9.2** – Bahasa inti yang digunakan oleh Flutter.
 - **State Management:** `setState` (built-in) / `Provider` (opsional untuk pengelolaan state yang lebih kompleks).
-- **Backend:** **Laravel 10** – Framework PHP untuk RESTful API dan manajemen data di server.
+- **Backend:** **Laravel 12** – Framework PHP untuk RESTful API dan manajemen data di server.
 - **Database:** **MySQL** – Digunakan untuk penyimpanan data absensi dan user.
 - **API:** **RESTful API** – Komunikasi antara aplikasi Flutter dan backend Laravel.
 - **Version Control:** **Git & GitHub** – Untuk pengelolaan kode dan kolaborasi.
@@ -44,6 +44,7 @@ Aplikasi ini mendukung login karyawan, pengajuan request, dan manajemen profil d
    ```bash
    git clone https://github.com/alberitus/presensi-app.git
    cd presensi-app
+   ubah API_KEY di .env sesuai dengan API_KEY di backend
    flutter pub get
    flutter pub upgrade --major-versions
    flutter run
