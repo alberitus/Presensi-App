@@ -10,11 +10,7 @@ class RequestScreen extends StatefulWidget {
   final User user;
   final Function(int)? onNavigate;
 
-  const RequestScreen({
-    super.key, 
-    required this.user,
-    this.onNavigate,
-  });
+  const RequestScreen({super.key, required this.user, this.onNavigate});
 
   @override
   State<RequestScreen> createState() => _RequestScreenState();
@@ -149,18 +145,12 @@ class _RequestScreenState extends State<RequestScreen> {
           }
         },
         items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home),
-            label: 'Home',
-          ),
+          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
           BottomNavigationBarItem(
             icon: Icon(Icons.notifications),
             label: 'Request',
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person),
-            label: 'Profile',
-          ),
+          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
         ],
       ),
     );
@@ -170,6 +160,7 @@ class _RequestScreenState extends State<RequestScreen> {
     Color statusColor;
     IconData statusIcon;
 
+    // Warna/icon untuk status request (izin/sakit/terlambat)
     switch (request.status) {
       case 'izin':
         statusColor = Colors.blue;
@@ -186,6 +177,24 @@ class _RequestScreenState extends State<RequestScreen> {
       default:
         statusColor = Colors.grey;
         statusIcon = Icons.help;
+    }
+
+    // Warna & label untuk approval
+    Color approvalColor;
+    String approvalLabel;
+
+    switch (request.isApproved) {
+      case 'disetujui':
+        approvalColor = Colors.green;
+        approvalLabel = 'Disetujui';
+        break;
+      case 'ditolak':
+        approvalColor = Colors.red;
+        approvalLabel = 'Ditolak';
+        break;
+      default: // 'menunggu'
+        approvalColor = Colors.orange;
+        approvalLabel = 'Menunggu';
     }
 
     return Container(
@@ -207,6 +216,7 @@ class _RequestScreenState extends State<RequestScreen> {
         children: [
           Row(
             children: [
+              // Icon status (izin/sakit/terlambat)
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
@@ -216,6 +226,8 @@ class _RequestScreenState extends State<RequestScreen> {
                 child: Icon(statusIcon, color: statusColor, size: 24),
               ),
               const SizedBox(width: 12),
+
+              // Status + tanggal mulai
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -235,17 +247,19 @@ class _RequestScreenState extends State<RequestScreen> {
                   ],
                 ),
               ),
+
+              // Badge approval
               Container(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 12,
                   vertical: 6,
                 ),
                 decoration: BoxDecoration(
-                  color: request.isApproved ? Colors.green : Colors.orange,
+                  color: approvalColor,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
-                  request.isApproved ? 'Approved' : 'Pending',
+                  approvalLabel,
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 12,
@@ -255,6 +269,7 @@ class _RequestScreenState extends State<RequestScreen> {
               ),
             ],
           ),
+
           if (request.keterangan != null) ...[
             const SizedBox(height: 12),
             Text(
@@ -262,6 +277,7 @@ class _RequestScreenState extends State<RequestScreen> {
               style: const TextStyle(color: Colors.black87, fontSize: 14),
             ),
           ],
+
           if (request.tanggalSelesai != null) ...[
             const SizedBox(height: 8),
             Row(
@@ -340,9 +356,9 @@ class _CreateRequestFormState extends State<CreateRequestForm> {
   Future<void> _submitRequest() async {
     if (!_formKey.currentState!.validate()) return;
     if (tanggalMulai == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Pilih tanggal mulai')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Pilih tanggal mulai')));
       return;
     }
 
@@ -358,7 +374,9 @@ class _CreateRequestFormState extends State<CreateRequestForm> {
       };
 
       if (tanggalSelesai != null) {
-        data['tanggal_selesai'] = DateFormat('yyyy-MM-dd').format(tanggalSelesai!);
+        data['tanggal_selesai'] = DateFormat(
+          'yyyy-MM-dd',
+        ).format(tanggalSelesai!);
       }
 
       await api.postMultipart(
@@ -380,10 +398,7 @@ class _CreateRequestFormState extends State<CreateRequestForm> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: $e'),
-            backgroundColor: Colors.red,
-          ),
+          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
         );
       }
     } finally {
@@ -423,7 +438,10 @@ class _CreateRequestFormState extends State<CreateRequestForm> {
                   items: const [
                     DropdownMenuItem(value: 'izin', child: Text('Izin')),
                     DropdownMenuItem(value: 'sakit', child: Text('Sakit')),
-                    DropdownMenuItem(value: 'terlambat', child: Text('Terlambat')),
+                    DropdownMenuItem(
+                      value: 'terlambat',
+                      child: Text('Terlambat'),
+                    ),
                   ],
                   onChanged: (value) {
                     setState(() => selectedStatus = value!);
