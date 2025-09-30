@@ -8,7 +8,7 @@ class RequestModel {
   final DateTime tanggalMulai;
   final DateTime? tanggalSelesai;
   final String? buktiDokumen;       // URL/file path bukti dokumen
-  final bool isApproved;
+  final String isApproved;
   final DateTime? createdAt;
   final DateTime? updatedAt;
 
@@ -40,7 +40,7 @@ class RequestModel {
           ? DateTime.tryParse(json['tanggal_selesai'])
           : null,
       buktiDokumen: json['bukti_dokumen'],
-      isApproved: json['is_approved'] == 1 || json['is_approved'] == true,
+      isApproved: json['is_approved'],
       createdAt: json['created_at'] != null
           ? DateTime.tryParse(json['created_at'])
           : null,
@@ -88,7 +88,7 @@ class RequestModel {
     DateTime? tanggalMulai,
     DateTime? tanggalSelesai,
     String? buktiDokumen,
-    bool? isApproved,
+    String? isApproved,
     DateTime? createdAt,
     DateTime? updatedAt,
     User? user,
